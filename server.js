@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const port = Number(process.env.PORT || 3000);
-const host = '127.0.0.1';
+const host = process.env.HOST || '0.0.0.0';
 const paymentStatusStore = new Map();
 
 app.use(cors());

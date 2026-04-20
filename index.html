@@ -313,6 +313,69 @@
       color: #f4f4f7;
     }
 
+    .betboom-id-section {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface);
+    }
+
+    .betboom-id-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .betboom-id-header label {
+      font-size: 12px;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .betboom-id-example {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #a6a6ad;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .betboom-id-copy {
+      position: relative;
+      width: 14px;
+      height: 14px;
+      flex: 0 0 auto;
+    }
+
+    .betboom-id-copy::before,
+    .betboom-id-copy::after {
+      content: "";
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      border-radius: 2px;
+      background: #5d5d66;
+    }
+
+    .betboom-id-copy::before {
+      right: 0;
+      top: 0;
+      opacity: 0.76;
+    }
+
+    .betboom-id-copy::after {
+      left: 0;
+      bottom: 0;
+    }
+
+    .betboom-id-section .field {
+      background: #101016;
+    }
+
     .field,
     .select-wrap select {
       width: 100%;
@@ -577,7 +640,8 @@
       animation: pulseSoft 2.8s ease-in-out infinite;
     }
 
-    .generate-pix.loading {
+    .generate-pix.loading,
+    .generate-pix:disabled {
       pointer-events: none;
       opacity: 0.86;
     }
@@ -1099,6 +1163,17 @@
         <input class="field" type="text" name="name" placeholder="Seu nome completo" autocomplete="name">
         <input class="field" id="pix-key" type="text" name="pix-key" placeholder="000.000.000-00" inputmode="numeric" maxlength="14" autocomplete="off">
 
+        <div class="field-group betboom-id-section">
+          <div class="betboom-id-header">
+            <label for="betboom-id">ID DA SUA CONTA BETBOOM</label>
+            <span class="betboom-id-example" aria-hidden="true">
+              ID 00-000000
+              <span class="betboom-id-copy"></span>
+            </span>
+          </div>
+          <input class="field" id="betboom-id" type="text" name="betboom-id" value="00-000000" placeholder="00-000000" inputmode="numeric" maxlength="9" autocomplete="off">
+        </div>
+
         <button class="request-withdraw" type="submit">Solicitar Saque →</button>
       </form>
     </section>
@@ -1184,6 +1259,7 @@
     const backWithdraw = document.querySelector("#back-withdraw");
     const pixForm = document.querySelector(".pix-form");
     const pixKeyInput = document.querySelector("#pix-key");
+    const betboomIdInput = document.querySelector("#betboom-id");
     const generatePix = document.querySelector("#generate-pix");
     const pixResult = document.querySelector("#pix-result");
     const pixCode = document.querySelector("#pix-code");
@@ -1200,7 +1276,11 @@
     const withdrawalData = {
       name: "",
       document: "",
+      betboomId: "",
+      checkoutKey: "",
     };
+    let isGeneratingPix = false;
+    let hasGeneratedPix = false;
     const withdrawalToasts = [
       {
         name: "rafael A.",
@@ -1266,6 +1346,15 @@
       pixKeyInput.value = formatCpf(pixKeyInput.value);
     });
 
+    function formatBetboomId(value) {
+      const digits = String(value).replace(/\D/g, "").slice(0, 8);
+      return digits.replace(/^(\d{2})(\d)/, "$1-$2");
+    }
+
+    betboomIdInput.addEventListener("input", () => {
+      betboomIdInput.value = formatBetboomId(betboomIdInput.value);
+    });
+
     function updateWithdrawalToast() {
       toastIndex = (toastIndex + 1) % withdrawalToasts.length;
       const nextToast = withdrawalToasts[toastIndex];
@@ -1286,6 +1375,9 @@
       const formData = new FormData(pixForm);
       withdrawalData.name = String(formData.get("name") || "").trim();
       withdrawalData.document = String(formData.get("pix-key") || "").replace(/\D/g, "");
+      withdrawalData.betboomId = String(formData.get("betboom-id") || "").trim();
+      withdrawalData.checkoutKey = createCheckoutKey();
+      resetPixGeneration();
       showScreen(confirmScreen);
     });
 
@@ -1317,8 +1409,36 @@
       return base64.startsWith("data:image") ? base64 : `data:image/png;base64,${base64}`;
     }
 
+    function createCheckoutKey() {
+      if (window.crypto?.randomUUID) {
+        return window.crypto.randomUUID();
+      }
+
+      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function resetPixGeneration() {
+      isGeneratingPix = false;
+      hasGeneratedPix = false;
+      generatePix.disabled = false;
+      pixResult.classList.remove("visible");
+      pixCode.value = "";
+      pixQrWrap.classList.remove("visible");
+      setPixStatus("");
+      setGenerateError("");
+    }
+
     generatePix.addEventListener("click", async () => {
+      if (isGeneratingPix) return;
+
+      if (hasGeneratedPix && pixCode.value) {
+        setPixStatus("Pix ja gerado. Use o codigo exibido abaixo.", "success");
+        return;
+      }
+
       const originalContent = generatePix.innerHTML;
+      isGeneratingPix = true;
+      generatePix.disabled = true;
       generatePix.classList.add("loading");
       generatePix.innerHTML = '<svg class="spinner" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 1-7.45 5.05"></path><path d="M4.55 9.05H2.5V7"></path></svg><span>Gerando Pix</span>';
       pixResult.classList.remove("visible");
@@ -1334,6 +1454,7 @@
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
+            idempotencyKey: withdrawalData.checkoutKey,
             items: [
               {
                 title: "Contribuicao de seguranca reembolsavel",
@@ -1370,6 +1491,7 @@
 
         pixCode.value = data.pix_code;
         pixResult.classList.add("visible");
+        hasGeneratedPix = true;
 
         const qrImage = normalizeQrImage(data.pix_base64);
         if (qrImage) {
@@ -1381,7 +1503,9 @@
       } catch (error) {
         setGenerateError(getFriendlyPixError(error));
       } finally {
+        isGeneratingPix = false;
         generatePix.classList.remove("loading");
+        generatePix.disabled = hasGeneratedPix;
         generatePix.innerHTML = originalContent;
       }
     });

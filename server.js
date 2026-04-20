@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
 
@@ -11,6 +12,8 @@ const app = express();
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
 const paymentStatusStore = new Map();
+const checkoutCache = new Map();
+const checkoutCacheTtlMs = Number(process.env.CHECKOUT_CACHE_TTL_MS || 10 * 60 * 1000);
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
@@ -40,6 +43,27 @@ function requirePaymentConfig() {
     const error = new Error(`Configure no .env: ${missing.join(', ')}`);
     error.statusCode = 500;
     throw error;
+  }
+}
+
+function getCheckoutCacheKey({ idempotencyKey, items, customer, delivery }) {
+  if (typeof idempotencyKey === 'string' && idempotencyKey.trim()) {
+    return `idempotency:${idempotencyKey.trim()}`;
+  }
+
+  return crypto
+    .createHash('sha256')
+    .update(JSON.stringify({ items, customer, delivery }))
+    .digest('hex');
+}
+
+function pruneCheckoutCache() {
+  const now = Date.now();
+
+  for (const [key, entry] of checkoutCache) {
+    if (entry.expiresAt <= now) {
+      checkoutCache.delete(key);
+    }
   }
 }
 
@@ -165,15 +189,42 @@ async function createPixPayment({ items, customer = {}, delivery = {} }) {
 
 app.post('/api/payments/checkout', async (req, res) => {
   try {
-    const { items, customer, delivery } = req.body;
+    const { items, customer, delivery, idempotencyKey } = req.body;
 
     if (!items || !customer) {
       return res.status(400).json({ error: 'Dados invalidos' });
     }
 
-    const payment = await createPixPayment({ items, customer, delivery });
+    pruneCheckoutCache();
+
+    const cacheKey = getCheckoutCacheKey({ idempotencyKey, items, customer, delivery });
+    const cachedCheckout = checkoutCache.get(cacheKey);
+
+    if (cachedCheckout) {
+      const payment = await cachedCheckout.promise;
+      return res.json(payment);
+    }
+
+    const promise = createPixPayment({ items, customer, delivery });
+    checkoutCache.set(cacheKey, {
+      promise,
+      expiresAt: Date.now() + checkoutCacheTtlMs,
+    });
+
+    const payment = await promise;
     return res.json(payment);
   } catch (error) {
+    if (req.body) {
+      checkoutCache.delete(
+        getCheckoutCacheKey({
+          idempotencyKey: req.body.idempotencyKey,
+          items: req.body.items,
+          customer: req.body.customer,
+          delivery: req.body.delivery,
+        })
+      );
+    }
+
     const providerError = error.response?.data || error.message;
     console.error('[payments] Falha ao gerar PIX:', providerError);
 

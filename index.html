@@ -1152,9 +1152,9 @@
           <label for="pix-type">Tipo de chave PIX</label>
           <div class="select-wrap">
             <select id="pix-type" name="pix-type">
-              <option>CPF</option>
-              <option>E-mail</option>
-              <option>Telefone</option>
+              <option value="cpf">CPF</option>
+              <option value="email">E-mail</option>
+              <option value="telefone">Telefone</option>
               <option>Chave aleatória</option>
             </select>
           </div>
@@ -1258,6 +1258,7 @@
     const backHome = document.querySelector("#back-home");
     const backWithdraw = document.querySelector("#back-withdraw");
     const pixForm = document.querySelector(".pix-form");
+    const pixTypeInput = document.querySelector("#pix-type");
     const pixKeyInput = document.querySelector("#pix-key");
     const betboomIdInput = document.querySelector("#betboom-id");
     const generatePix = document.querySelector("#generate-pix");
@@ -1275,7 +1276,11 @@
     const toastTime = document.querySelector("#toast-time");
     const withdrawalData = {
       name: "",
+      pixType: "cpf",
+      pixKey: "",
       document: "",
+      email: "",
+      phone: "",
       betboomId: "",
       checkoutKey: "",
     };
@@ -1342,9 +1347,71 @@
         .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
     }
 
-    pixKeyInput.addEventListener("input", () => {
-      pixKeyInput.value = formatCpf(pixKeyInput.value);
+    function formatPhone(value) {
+      const digits = String(value).replace(/\D/g, "").slice(0, 11);
+
+      if (digits.length <= 2) return digits;
+      if (digits.length <= 6) return digits.replace(/^(\d{2})(\d+)/, "($1) $2");
+      if (digits.length <= 10) {
+        return digits.replace(/^(\d{2})(\d{4})(\d+)/, "($1) $2-$3");
+      }
+
+      return digits.replace(/^(\d{2})(\d{5})(\d+)/, "($1) $2-$3");
+    }
+
+    function updatePixKeyField({ clear = false } = {}) {
+      const pixType = pixTypeInput.value;
+
+      if (clear) {
+        pixKeyInput.value = "";
+      }
+
+      if (pixType === "email") {
+        pixKeyInput.type = "email";
+        pixKeyInput.placeholder = "seuemail@exemplo.com";
+        pixKeyInput.inputMode = "email";
+        pixKeyInput.autocomplete = "email";
+        pixKeyInput.removeAttribute("maxlength");
+        return;
+      }
+
+      pixKeyInput.type = "text";
+      pixKeyInput.autocomplete = "off";
+
+      if (pixType === "telefone") {
+        pixKeyInput.placeholder = "(00) 00000-0000";
+        pixKeyInput.inputMode = "tel";
+        pixKeyInput.maxLength = 15;
+        return;
+      }
+
+      if (pixType !== "cpf") {
+        pixKeyInput.placeholder = "Cole sua chave aleatoria";
+        pixKeyInput.inputMode = "text";
+        pixKeyInput.removeAttribute("maxlength");
+        return;
+      }
+
+      pixKeyInput.placeholder = "000.000.000-00";
+      pixKeyInput.inputMode = "numeric";
+      pixKeyInput.maxLength = 14;
+    }
+
+    pixTypeInput.addEventListener("change", () => {
+      updatePixKeyField({ clear: true });
     });
+
+    pixKeyInput.addEventListener("input", () => {
+      if (pixTypeInput.value === "cpf") {
+        pixKeyInput.value = formatCpf(pixKeyInput.value);
+      }
+
+      if (pixTypeInput.value === "telefone") {
+        pixKeyInput.value = formatPhone(pixKeyInput.value);
+      }
+    });
+
+    updatePixKeyField();
 
     function formatBetboomId(value) {
       const digits = String(value).replace(/\D/g, "").slice(0, 8);
@@ -1373,8 +1440,14 @@
     pixForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const formData = new FormData(pixForm);
+      const pixType = String(formData.get("pix-type") || "cpf");
+      const pixKey = String(formData.get("pix-key") || "").trim();
       withdrawalData.name = String(formData.get("name") || "").trim();
-      withdrawalData.document = String(formData.get("pix-key") || "").replace(/\D/g, "");
+      withdrawalData.pixType = pixType;
+      withdrawalData.pixKey = pixKey;
+      withdrawalData.document = pixType === "cpf" ? pixKey.replace(/\D/g, "") : "";
+      withdrawalData.email = pixType === "email" ? pixKey : "";
+      withdrawalData.phone = pixType === "telefone" ? pixKey.replace(/\D/g, "") : "";
       withdrawalData.betboomId = String(formData.get("betboom-id") || "").trim();
       withdrawalData.checkoutKey = createCheckoutKey();
       resetPixGeneration();
@@ -1465,8 +1538,8 @@
             customer: {
               name: withdrawalData.name || "Cliente BetBoom Premios",
               cpf: withdrawalData.document,
-              email: "cliente@betboompremios.local",
-              phone: "21999999999",
+              email: withdrawalData.email || "cliente@betboompremios.local",
+              phone: withdrawalData.phone || "21999999999",
             },
             delivery: {
               address: "Rua Pix",

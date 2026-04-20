@@ -1,0 +1,210 @@
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import axios from 'axios';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const app = express();
+const port = Number(process.env.PORT || 3000);
+const host = '127.0.0.1';
+const paymentStatusStore = new Map();
+
+app.use(cors());
+app.use(express.json({ limit: '1mb' }));
+app.use(express.static(__dirname, { index: false }));
+
+function normalizeItemPrice(item) {
+  const unitPrice = Number(item?.unitPrice || 0);
+  if (unitPrice > 0) return unitPrice;
+
+  const directPrice = Number(item?.price || 0);
+  if (directPrice > 0) return directPrice;
+
+  return Number(item?.oldPrice || 0);
+}
+
+function requirePaymentConfig() {
+  const required = [
+    'PAYMENT_API_URL',
+    'PAYMENT_API_KEY',
+    'IRONPAY_OFFER_HASH',
+    'IRONPAY_PRODUCT_HASH',
+  ];
+
+  const missing = required.filter((key) => !process.env[key]);
+
+  if (missing.length) {
+    const error = new Error(`Configure no .env: ${missing.join(', ')}`);
+    error.statusCode = 500;
+    throw error;
+  }
+}
+
+async function createPixPayment({ items, customer = {}, delivery = {} }) {
+  requirePaymentConfig();
+
+  const normalizedItems = Array.isArray(items) ? items : [];
+  const productTotal = normalizedItems.reduce((sum, item) => {
+    return sum + normalizeItemPrice(item) * Number(item?.qty || item?.quantity || 1);
+  }, 0);
+  const totalInCents = Math.round(productTotal * 100);
+
+  if (!normalizedItems.length || totalInCents <= 0) {
+    const error = new Error('Dados invalidos para gerar PIX.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const productHash = process.env.IRONPAY_PRODUCT_HASH;
+  const pixEndpoint = process.env.PAYMENT_PIX_ENDPOINT || '/transactions';
+  const expireInDays = Number(process.env.IRONPAY_EXPIRE_IN_DAYS || 1);
+
+  const cart = normalizedItems.map((item) => ({
+    product_hash: productHash,
+    title: item.title || 'Contribuicao de seguranca',
+    cover: item.image || null,
+    price: Math.round(normalizeItemPrice(item) * 100),
+    quantity: Number(item?.qty || item?.quantity || 1),
+    operation_type: 1,
+    tangible: false,
+  }));
+
+  const response = await axios.post(
+    `${process.env.PAYMENT_API_URL}${pixEndpoint}`,
+    {
+      offer_hash: process.env.IRONPAY_OFFER_HASH,
+      amount: totalInCents,
+      payment_method: 'pix',
+      expire_in_days: expireInDays,
+      transaction_origin: 'api',
+      postback_url: process.env.IRONPAY_POSTBACK_URL || undefined,
+      cart,
+      customer: {
+        name: customer.name || 'Cliente BetBoom Premios',
+        email: customer.email || process.env.DEFAULT_CUSTOMER_EMAIL || 'cliente@betboompremios.local',
+        phone_number: customer.phone_number || customer.phone || process.env.DEFAULT_PHONE_NUMBER || '',
+        document: customer.document || customer.cpf || '',
+        street_name: customer.street_name || delivery.address || 'Rua Pix',
+        number: customer.number || delivery.number || '100',
+        complement: customer.complement || delivery.complement || '',
+        neighborhood: customer.neighborhood || delivery.neighborhood || process.env.DEFAULT_NEIGHBORHOOD || 'Centro',
+        city: customer.city || delivery.city || process.env.DEFAULT_CITY || 'Rio de Janeiro',
+        state: customer.state || delivery.state || process.env.DEFAULT_STATE || 'RJ',
+        zip_code: customer.zip_code || delivery.zip_code || delivery.cep || process.env.DEFAULT_ZIP_CODE || '20000000',
+      },
+      tracking: {
+        src: '',
+        utm_source: '',
+        utm_medium: '',
+        utm_campaign: '',
+        utm_term: '',
+        utm_content: '',
+      },
+    },
+    {
+      params: {
+        api_token: process.env.PAYMENT_API_KEY,
+      },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      proxy: false,
+    }
+  );
+
+  const pixCode =
+    response.data.pix_code ||
+    response.data.pixCode ||
+    response.data.pix?.pix_qr_code ||
+    response.data.pix_qr_code ||
+    null;
+
+  const transactionHash =
+    response.data.transaction_hash ||
+    response.data.transactionHash ||
+    response.data.pix?.transaction_hash ||
+    response.data.pix?.transactionHash ||
+    null;
+
+  if (!pixCode) {
+    const error = new Error('A API respondeu sem codigo PIX.');
+    error.statusCode = 502;
+    throw error;
+  }
+
+  if (transactionHash) {
+    paymentStatusStore.set(transactionHash, {
+      transactionHash,
+      status: response.data.status || 'pending',
+      amount: response.data.amount || totalInCents,
+      paymentMethod: 'pix',
+      isPaid: response.data.status === 'paid',
+      pixCode,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  return {
+    transaction_hash: transactionHash,
+    status: response.data.status || 'pending',
+    pix_code: pixCode,
+    pix_base64:
+      response.data.qr_code ||
+      response.data.pix_base64 ||
+      response.data.qrCode ||
+      response.data.pix?.qr_code_base64 ||
+      null,
+    charged_total: productTotal,
+    source: 'ironpay',
+  };
+}
+
+app.post('/api/payments/checkout', async (req, res) => {
+  try {
+    const { items, customer, delivery } = req.body;
+
+    if (!items || !customer) {
+      return res.status(400).json({ error: 'Dados invalidos' });
+    }
+
+    const payment = await createPixPayment({ items, customer, delivery });
+    return res.json(payment);
+  } catch (error) {
+    const providerError = error.response?.data || error.message;
+    console.error('[payments] Falha ao gerar PIX:', providerError);
+
+    return res.status(error.statusCode || error.response?.status || 500).json({
+      error: typeof providerError === 'string' ? providerError : JSON.stringify(providerError),
+    });
+  }
+});
+
+app.get('/api/payments/status/:transactionHash', (req, res) => {
+  const payment = paymentStatusStore.get(req.params.transactionHash);
+
+  if (!payment) {
+    return res.json({
+      transactionHash: req.params.transactionHash,
+      status: 'pending',
+      isPaid: false,
+    });
+  }
+
+  return res.json(payment);
+});
+
+app.get('/health', (req, res) => {
+  res.json({ ok: true, uptime: Math.round(process.uptime()) });
+});
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.listen(port, host, () => {
+  console.log(`Servidor rodando em http://${host}:${port}`);
+});

@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BETBOOM PREMIOS</title>
+  <style>
+    :root {
+      --pink: #f80072;
+      --pink-dark: #e10067;
+      --ink: #f4f4f7;
+      --muted: #a8a8b3;
+      --line: #2b2b36;
+      --bg: #09090d;
+      --surface: #14141b;
+      --surface-2: #1b1b24;
+      --surface-3: #20202a;
+      --green: #00895e;
+      --shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+    }
+
+    @keyframes screenIn {
+      from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.99);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes floatIn {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes shimmer {
+      0% {
+        transform: translateX(-120%);
+      }
+
+      100% {
+        transform: translateX(120%);
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes pulseSoft {
+      0%, 100% {
+        box-shadow: 0 12px 24px rgba(248, 0, 114, 0.18);
+      }
+
+      50% {
+        box-shadow: 0 18px 34px rgba(248, 0, 114, 0.3);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    button {
+      border: 0;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .screen {
+      display: block;
+      animation: screenIn 0.38s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .screen[hidden] {
+      display: none;
+    }
+
+    .app {
+      position: relative;
+      min-height: 100vh;
+      padding: 18px 12px 92px;
+      overflow: hidden;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 34px;
+      margin-bottom: 17px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #f5f5f8;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .brand-logo {
+      display: block;
+      width: 25px;
+      height: 25px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: #111111;
+    }
+
+    .brand-accent {
+      color: #ffd400;
+      text-shadow: 0 1px 0 #111111, 1px 0 0 #111111, 0 -1px 0 #111111, -1px 0 0 #111111;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+    }
+
+    .top-actions {
+      gap: 12px;
+      color: #f5f5f8;
+    }
+
+    .icon-button {
+      display: grid;
+      width: 20px;
+      height: 24px;
+      place-items: center;
+      background: transparent;
+      color: currentColor;
+    }
+
+    .icon {
+      display: block;
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .balance-card {
+      width: 100%;
+      min-height: 206px;
+      padding: 30px 18px;
+      border-radius: 18px;
+      background: var(--pink);
+      color: #fff;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+      animation: floatIn 0.48s 0.04s both;
+    }
+
+    .balance-card::after,
+    .confirm-balance::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 55%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+      animation: shimmer 3.4s ease-in-out infinite;
+    }
+
+    .balance-label {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .amount {
+      margin: 0;
+      font-size: 33px;
+      line-height: 1.1;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .weekly {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .withdraw {
+      width: 100%;
+      height: 38px;
+      margin-top: 8px;
+      border-radius: 9px;
+      background: #fff;
+      color: var(--pink-dark);
+      font-size: 12px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
+    }
+
+    .withdraw:hover,
+    .request-withdraw:hover,
+    .generate-pix:hover,
+    .copy-pix:hover {
+      transform: translateY(-2px);
+    }
+
+    .withdraw:active,
+    .request-withdraw:active,
+    .generate-pix:active,
+    .copy-pix:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .withdraw-screen {
+      padding: 0 6px;
+    }
+
+    .withdraw-header {
+      height: 32px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin: -4px 0 21px;
+      color: #f5f5f8;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .back-button {
+      width: 22px;
+      height: 28px;
+      display: inline-grid;
+      place-items: center;
+      background: transparent;
+      color: inherit;
+    }
+
+    .withdraw-balance {
+      min-height: 90px;
+      padding: 22px 20px;
+      border-radius: 14px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .withdraw-balance span {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .withdraw-balance strong {
+      color: #fff;
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .pix-form {
+      display: grid;
+      gap: 17px;
+      margin-top: 19px;
+    }
+
+    .field-group {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field-group label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #f4f4f7;
+    }
+
+    .field,
+    .select-wrap select {
+      width: 100%;
+      height: 50px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--surface);
+      color: #f4f4f7;
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+    }
+
+    .field {
+      padding: 0 13px;
+    }
+
+    .field::placeholder {
+      color: #737380;
+      font-weight: 600;
+    }
+
+    .field:focus,
+    .select-wrap select:focus {
+      border-color: var(--pink);
+      box-shadow: 0 0 0 1px var(--pink), 0 0 0 4px rgba(248, 0, 114, 0.14);
+    }
+
+    .select-wrap {
+      position: relative;
+    }
+
+    .select-wrap select {
+      appearance: none;
+      padding: 0 42px 0 18px;
+    }
+
+    .select-wrap::after {
+      content: "";
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      width: 7px;
+      height: 7px;
+      border-right: 2px solid #f5f5f8;
+      border-bottom: 2px solid #f5f5f8;
+      transform: translateY(-65%) rotate(45deg);
+      pointer-events: none;
+    }
+
+    .request-withdraw {
+      height: 50px;
+      margin-top: 2px;
+      border-radius: 12px;
+      background: var(--pink);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
+    }
+
+    .request-withdraw:hover,
+    .generate-pix:hover {
+      box-shadow: 0 14px 28px rgba(248, 0, 114, 0.24);
+      filter: brightness(1.02);
+    }
+
+    .confirm-screen {
+      padding: 0 2px;
+    }
+
+    .confirm-header {
+      position: relative;
+      min-height: 38px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      margin: -5px 0 14px;
+      color: #f5f5f8;
+      text-align: center;
+    }
+
+    .confirm-title {
+      display: grid;
+      gap: 3px;
+      font-weight: 800;
+      font-size: 15px;
+      line-height: 1.15;
+    }
+
+    .timer {
+      color: var(--pink);
+      font-size: 12px;
+    }
+
+    .confirm-header .back-button {
+      position: absolute;
+      left: 0;
+      top: -5px;
+    }
+
+    .step-banner {
+      margin: 0 -14px 14px;
+      padding: 11px 16px;
+      background: #2f62ed;
+      color: #fff;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .protocol {
+      margin: 0 0 13px;
+      text-align: center;
+      color: #898996;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .confirm-layout {
+      display: grid;
+      gap: 28px;
+    }
+
+    .confirm-balance {
+      min-height: 123px;
+      padding: 31px 21px;
+      border-radius: 16px;
+      background: #7d42d8;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      animation: floatIn 0.48s 0.06s both;
+    }
+
+    .confirm-balance span {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .confirm-balance strong {
+      margin-top: 3px;
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .confirm-balance small {
+      margin-top: 4px;
+      font-size: 12px;
+      font-weight: 800;
+      opacity: 0.74;
+    }
+
+    .security-title {
+      margin: 6px 0 10px;
+      color: #9a9aa5;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .security-amount {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 13px;
+    }
+
+    .security-amount strong {
+      color: var(--pink);
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 17px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #e8f4ff;
+      color: #2389df;
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .security-copy {
+      margin: 0 0 18px;
+      color: #a8a8b3;
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .security-copy strong {
+      color: #f4f4f7;
+    }
+
+    .security-copy .pink {
+      color: var(--pink);
+    }
+
+    .breakdown {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface);
+      animation: floatIn 0.48s 0.14s both;
+    }
+
+    .breakdown-row {
+      min-height: 45px;
+      padding: 0 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      color: #d7d7dd;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .breakdown-row:last-child {
+      border-bottom: 0;
+    }
+
+    .breakdown-row.total {
+      color: var(--pink);
+      font-weight: 800;
+    }
+
+    .pix-action {
+      margin-top: 28px;
+      display: grid;
+      gap: 14px;
+      animation: floatIn 0.48s 0.2s both;
+    }
+
+    .generate-pix {
+      width: 100%;
+      min-height: 56px;
+      border-radius: 999px;
+      background: var(--pink);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
+      animation: pulseSoft 2.8s ease-in-out infinite;
+    }
+
+    .generate-pix.loading {
+      pointer-events: none;
+      opacity: 0.86;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      animation: spin 0.72s linear infinite;
+    }
+
+    .spinner path {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .generate-error {
+      display: none;
+      margin: -2px 4px 0;
+      color: #c5214f;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.45;
+      text-align: center;
+      animation: screenIn 0.24s ease both;
+    }
+
+    .generate-error.visible {
+      display: block;
+    }
+
+    .generate-pix-icon {
+      width: 17px;
+      height: 17px;
+    }
+
+    .generate-pix-icon path {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linejoin: round;
+    }
+
+    .copy-pix.copied {
+      background: #00895e;
+      box-shadow: 0 12px 26px rgba(0, 137, 94, 0.18);
+    }
+
+    .copy-pix.copied::after {
+      content: "Copiado";
+    }
+
+    .copy-pix.copied span {
+      display: none;
+    }
+
+    .mini-spin {
+      display: inline-block;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .pix-result {
+      display: none;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      animation: screenIn 0.34s ease both;
+    }
+
+    .pix-result.visible {
+      display: grid;
+      gap: 13px;
+    }
+
+    .pix-result-title {
+      margin: 0;
+      color: #f4f4f7;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .pix-qr-wrap {
+      display: none;
+      justify-content: center;
+      padding: 12px;
+      border-radius: 14px;
+      background: var(--surface-2);
+    }
+
+    .pix-qr-wrap.visible {
+      display: flex;
+    }
+
+    .pix-qr-wrap img {
+      width: 166px;
+      height: 166px;
+      object-fit: contain;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .pix-code {
+      width: 100%;
+      min-height: 92px;
+      padding: 12px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface-2);
+      color: #e9e9ee;
+      font: 12px/1.45 Arial, Helvetica, sans-serif;
+      outline: none;
+    }
+
+    .copy-pix {
+      min-height: 44px;
+      border-radius: 11px;
+      background: #24242b;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
+    }
+
+    .copy-pix:hover {
+      background: #111118;
+      box-shadow: 0 12px 26px rgba(20, 20, 30, 0.16);
+    }
+
+    .pix-status {
+      min-height: 18px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .pix-status.error {
+      color: #c5214f;
+    }
+
+    .pix-status.success {
+      color: #00895e;
+    }
+
+    .section-title {
+      margin: 26px 4px 12px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #f4f4f7;
+    }
+
+    .criteria-list {
+      display: grid;
+      gap: 11px;
+    }
+
+    .criteria-card {
+      min-height: 65px;
+      padding: 15px 16px 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface);
+      animation: floatIn 0.42s both;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    }
+
+    .criteria-card:nth-child(2) {
+      animation-delay: 0.06s;
+    }
+
+    .criteria-card:nth-child(3) {
+      animation-delay: 0.12s;
+    }
+
+    .criteria-card:hover {
+      border-color: rgba(248, 0, 114, 0.55);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28);
+      transform: translateY(-2px);
+    }
+
+    .criteria-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #f4f4f7;
+    }
+
+    .criteria-name {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .criteria-name span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .criteria-count {
+      flex: 0 0 auto;
+    }
+
+    .progress {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #3a1a2b;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: var(--value);
+      border-radius: inherit;
+      background: var(--pink);
+    }
+
+    .toast {
+      position: fixed;
+      left: 22px;
+      right: 18px;
+      bottom: 22px;
+      z-index: 4;
+      min-height: 58px;
+      padding: 11px 18px 11px 10px;
+      border-radius: 999px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      flex: 0 0 auto;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: linear-gradient(135deg, #ff006d 0%, #ee2b7c 39%, #ff7a00 100%);
+      box-shadow: 0 0 0 2px rgba(248, 0, 114, 0.35);
+    }
+
+    .toast-text {
+      min-width: 0;
+      font-size: 11px;
+      line-height: 1.25;
+      color: var(--muted);
+    }
+
+    .toast-text strong {
+      color: #f4f4f7;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .toast-text .money {
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    @media (min-width: 430px) {
+      body {
+        background: #050507;
+      }
+
+      .app {
+        width: 390px;
+        margin: 0 auto;
+        background: var(--bg);
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.52);
+      }
+
+      .toast {
+        left: 50%;
+        width: 390px;
+        right: auto;
+        transform: translateX(-50%);
+      }
+
+      .toast {
+        width: 336px;
+      }
+    }
+
+    @media (min-width: 760px) {
+      .app {
+        width: min(880px, calc(100vw - 48px));
+        padding: 24px 28px 120px;
+      }
+
+      .balance-card {
+        min-height: 230px;
+      }
+
+      .amount {
+        font-size: 40px;
+      }
+
+      .criteria-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .criteria-card {
+        min-height: 88px;
+      }
+
+      .withdraw-screen,
+      .confirm-screen {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 0;
+      }
+
+      .withdraw-balance {
+        min-height: 112px;
+      }
+
+      .pix-form {
+        grid-template-columns: 1fr 1fr;
+        align-items: end;
+      }
+
+      .pix-form .field-group,
+      .request-withdraw {
+        grid-column: 1 / -1;
+      }
+
+      .confirm-header {
+        margin-top: 0;
+      }
+
+      .step-banner {
+        margin-left: 0;
+        margin-right: 0;
+        border-radius: 10px;
+      }
+
+      .confirm-layout {
+        grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1fr);
+        align-items: start;
+      }
+
+      .confirm-balance {
+        min-height: 210px;
+        border-radius: 18px;
+      }
+
+      .confirm-balance strong {
+        font-size: 42px;
+      }
+
+      .security-title {
+        margin-top: 0;
+      }
+
+      .toast {
+        width: min(880px, calc(100vw - 48px));
+      }
+
+      .toast {
+        width: 420px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="Painel Insta Pix">
+    <section class="screen" id="home-screen">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-logo" src="https://cdn.brandfetch.io/domain/betboom.ru/fallback/lettermark/theme/dark/h/400/w/400/icon?c=1bfwsmEH20zzEfSNTed" alt="Logo BetBoom">
+          <span>BETBOOM <span class="brand-accent">PREMIOS</span></span>
+        </div>
+
+        <div class="top-actions">
+          <button class="icon-button" aria-label="Notificações">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+              <path d="M10 21h4"></path>
+            </svg>
+          </button>
+          <button class="icon-button" aria-label="Calendário">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4" y="5" width="16" height="15" rx="2"></rect>
+              <path d="M8 3v4M16 3v4M4 10h16"></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <section class="balance-card" aria-label="Saldo disponível">
+        <p class="balance-label">Saldo disponível</p>
+        <h1 class="amount">R$ 3.834,72</h1>
+        <div class="weekly">
+          <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 18V6M4 18h16M7 15l4-5 4 3 5-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+          <span>+R$ 127,50 esta semana</span>
+        </div>
+        <button class="withdraw" id="open-withdraw" type="button">
+          <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 4v10M8 10l4 4 4-4M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+          <span>Sacar Agora</span>
+        </button>
+      </section>
+
+      <h2 class="section-title">Critérios de Atividade</h2>
+
+      <section class="criteria-list" aria-label="Critérios de Atividade">
+        <article class="criteria-card">
+          <div class="criteria-head">
+            <div class="criteria-name">
+              <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" fill="none" stroke="#f80072" stroke-width="2"></circle>
+                <path d="M10 8l6 4-6 4V8z" fill="#f80072"></path>
+              </svg>
+              <span>Valor Apostado Na BetBoom</span>
+            </div>
+            <span class="criteria-count">20R$/20R$</span>
+          </div>
+          <div class="progress" aria-hidden="true">
+            <div class="progress-fill" style="--value: 100%;"></div>
+          </div>
+        </article>
+
+        <article class="criteria-card">
+          <div class="criteria-head">
+            <div class="criteria-name">
+              <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" fill="none" stroke="#f80072" stroke-width="2"></circle>
+                <path d="M12 7v6l4 2" fill="none" stroke="#f80072" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+              <span>Tempo na plataforma</span>
+            </div>
+            <span class="criteria-count">1000/1000</span>
+          </div>
+          <div class="progress" aria-hidden="true">
+            <div class="progress-fill" style="--value: 100%;"></div>
+          </div>
+        </article>
+
+        <article class="criteria-card">
+          <div class="criteria-head">
+            <div class="criteria-name">
+              <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20.5 8.5c0 5-8.5 10-8.5 10s-8.5-5-8.5-10A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8.5 2.5z" fill="none" stroke="#f80072" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+              <span>tempo no grupo Do Markola</span>
+            </div>
+            <span class="criteria-count">30 Dias/30dias</span>
+          </div>
+          <div class="progress" aria-hidden="true">
+            <div class="progress-fill" style="--value: 100%;"></div>
+          </div>
+        </article>
+      </section>
+
+      <aside class="toast" aria-label="Saque recente">
+        <img class="avatar" id="toast-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="">
+        <div class="toast-text">
+          <strong id="toast-name">rafael A.</strong> sacou <span class="money" id="toast-amount">R$ 1.890,25</span><br>
+          <span id="toast-time">agora mesmo</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="screen withdraw-screen" id="withdraw-screen" hidden>
+      <header class="withdraw-header">
+        <button class="back-button" id="back-home" type="button" aria-label="Voltar">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 18 9 12l6-6"></path>
+          </svg>
+        </button>
+        <span>Saque via PIX</span>
+      </header>
+
+      <section class="withdraw-balance" aria-label="Saldo disponível">
+        <span>Saldo disponível</span>
+        <strong>R$ 3.834,72</strong>
+      </section>
+
+      <form class="pix-form">
+        <div class="field-group">
+          <label for="pix-type">Tipo de chave PIX</label>
+          <div class="select-wrap">
+            <select id="pix-type" name="pix-type">
+              <option>CPF</option>
+              <option>E-mail</option>
+              <option>Telefone</option>
+              <option>Chave aleatória</option>
+            </select>
+          </div>
+        </div>
+
+        <input class="field" type="text" name="name" placeholder="Seu nome completo" autocomplete="name">
+        <input class="field" id="pix-key" type="text" name="pix-key" placeholder="000.000.000-00" inputmode="numeric" maxlength="14" autocomplete="off">
+
+        <button class="request-withdraw" type="submit">Solicitar Saque →</button>
+      </form>
+    </section>
+
+    <section class="screen confirm-screen" id="confirm-screen" hidden>
+      <header class="confirm-header">
+        <button class="back-button" id="back-withdraw" type="button" aria-label="Voltar">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 18 9 12l6-6"></path>
+          </svg>
+        </button>
+        <div class="confirm-title">
+          <span>Confirmação de saque</span>
+          <span class="timer">Tempo restante: 7:46</span>
+        </div>
+      </header>
+
+      <div class="step-banner">você está a 1 passo de fazer seu saque!</div>
+      <p class="protocol">Protocolo: TT-2026-WPWF6C</p>
+
+      <div class="confirm-layout">
+        <section class="confirm-balance" aria-label="Saldo disponível aguardando confirmação">
+          <span>Saldo disponível</span>
+          <strong>R$ 3.834,72</strong>
+          <small>Aguardando confirmação para saque</small>
+        </section>
+
+        <section class="security-block" aria-label="Contribuição de segurança">
+          <h2 class="security-title">Contribuição de segurança</h2>
+          <div class="security-amount">
+            <strong>R$ 21,37</strong>
+            <span class="badge">100% reembolsável</span>
+          </div>
+          <p class="security-copy">
+            Contribuição exigida pela <strong>Equipe Markola.</strong> Devolvida em <strong class="pink">1 minuto.</strong>
+          </p>
+
+          <div class="breakdown">
+            <div class="breakdown-row">
+              <span>Validação Reembolsavel</span>
+              <strong>R$ 10,68</strong>
+            </div>
+            <div class="breakdown-row">
+              <span>Seguro antifraude</span>
+              <strong>R$ 10,68</strong>
+            </div>
+            <div class="breakdown-row total">
+              <span>Total (reembolsável)</span>
+              <strong>R$ 21,37</strong>
+            </div>
+          </div>
+
+          <div class="pix-action">
+            <button class="generate-pix" id="generate-pix" type="button">
+              <svg class="generate-pix-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 7h10v10H7zM3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM17 17h4v4h-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
+              </svg>
+              <span>Gerar Pix</span>
+            </button>
+            <p class="generate-error" id="generate-error"></p>
+
+            <div class="pix-result" id="pix-result">
+              <p class="pix-result-title">Pix gerado para a contribuição reembolsável</p>
+              <div class="pix-qr-wrap" id="pix-qr-wrap">
+                <img id="pix-qr-image" alt="QR Code PIX">
+              </div>
+              <textarea class="pix-code" id="pix-code" readonly placeholder="O código Pix vai aparecer aqui."></textarea>
+              <button class="copy-pix" id="copy-pix" type="button"><span>Copiar código Pix</span></button>
+              <p class="pix-status" id="pix-status"></p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const homeScreen = document.querySelector("#home-screen");
+    const withdrawScreen = document.querySelector("#withdraw-screen");
+    const confirmScreen = document.querySelector("#confirm-screen");
+    const openWithdraw = document.querySelector("#open-withdraw");
+    const backHome = document.querySelector("#back-home");
+    const backWithdraw = document.querySelector("#back-withdraw");
+    const pixForm = document.querySelector(".pix-form");
+    const pixKeyInput = document.querySelector("#pix-key");
+    const generatePix = document.querySelector("#generate-pix");
+    const pixResult = document.querySelector("#pix-result");
+    const pixCode = document.querySelector("#pix-code");
+    const pixStatus = document.querySelector("#pix-status");
+    const pixQrWrap = document.querySelector("#pix-qr-wrap");
+    const pixQrImage = document.querySelector("#pix-qr-image");
+    const copyPix = document.querySelector("#copy-pix");
+    const generateError = document.querySelector("#generate-error");
+    const toast = document.querySelector(".toast");
+    const toastAvatar = document.querySelector("#toast-avatar");
+    const toastName = document.querySelector("#toast-name");
+    const toastAmount = document.querySelector("#toast-amount");
+    const toastTime = document.querySelector("#toast-time");
+    const withdrawalData = {
+      name: "",
+      document: "",
+    };
+    const withdrawalToasts = [
+      {
+        name: "rafael A.",
+        amount: "R$ 1.890,25",
+        time: "agora mesmo",
+        avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+      },
+      {
+        name: "camila R.",
+        amount: "R$ 742,90",
+        time: "há 1 minuto",
+        avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+      },
+      {
+        name: "lucas M.",
+        amount: "R$ 2.310,00",
+        time: "há 2 minutos",
+        avatar: "https://randomuser.me/api/portraits/men/76.jpg",
+      },
+      {
+        name: "bianca S.",
+        amount: "R$ 965,40",
+        time: "agora mesmo",
+        avatar: "https://randomuser.me/api/portraits/women/68.jpg",
+      },
+      {
+        name: "marcos V.",
+        amount: "R$ 1.427,18",
+        time: "há 3 minutos",
+        avatar: "https://randomuser.me/api/portraits/men/41.jpg",
+      },
+    ];
+    let toastIndex = 0;
+
+    function showScreen(screen) {
+      homeScreen.hidden = screen !== homeScreen;
+      withdrawScreen.hidden = screen !== withdrawScreen;
+      confirmScreen.hidden = screen !== confirmScreen;
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+
+    openWithdraw.addEventListener("click", () => {
+      showScreen(withdrawScreen);
+    });
+
+    backHome.addEventListener("click", () => {
+      showScreen(homeScreen);
+    });
+
+    backWithdraw.addEventListener("click", () => {
+      showScreen(withdrawScreen);
+    });
+
+    function formatCpf(value) {
+      const digits = String(value).replace(/\D/g, "").slice(0, 11);
+      return digits
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    }
+
+    pixKeyInput.addEventListener("input", () => {
+      pixKeyInput.value = formatCpf(pixKeyInput.value);
+    });
+
+    function updateWithdrawalToast() {
+      toastIndex = (toastIndex + 1) % withdrawalToasts.length;
+      const nextToast = withdrawalToasts[toastIndex];
+
+      toast.style.animation = "none";
+      toast.offsetHeight;
+      toastAvatar.src = nextToast.avatar;
+      toastName.textContent = nextToast.name;
+      toastAmount.textContent = nextToast.amount;
+      toastTime.textContent = nextToast.time;
+      toast.style.animation = "";
+    }
+
+    window.setInterval(updateWithdrawalToast, 4200);
+
+    pixForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const formData = new FormData(pixForm);
+      withdrawalData.name = String(formData.get("name") || "").trim();
+      withdrawalData.document = String(formData.get("pix-key") || "").replace(/\D/g, "");
+      showScreen(confirmScreen);
+    });
+
+    function setPixStatus(message, type = "") {
+      pixStatus.textContent = message;
+      pixStatus.className = `pix-status ${type}`.trim();
+    }
+
+    function setGenerateError(message = "") {
+      generateError.textContent = message;
+      generateError.classList.toggle("visible", Boolean(message));
+    }
+
+    function getFriendlyPixError(error) {
+      const rawMessage = String(error?.message || "");
+
+      try {
+        const parsed = JSON.parse(rawMessage);
+        return parsed.message || parsed.error || "Nao foi possivel gerar o Pix. Tente novamente.";
+      } catch {
+        return rawMessage && !rawMessage.includes("{")
+          ? rawMessage
+          : "Nao foi possivel gerar o Pix. Tente novamente.";
+      }
+    }
+
+    function normalizeQrImage(base64) {
+      if (!base64) return "";
+      return base64.startsWith("data:image") ? base64 : `data:image/png;base64,${base64}`;
+    }
+
+    generatePix.addEventListener("click", async () => {
+      const originalContent = generatePix.innerHTML;
+      generatePix.classList.add("loading");
+      generatePix.innerHTML = '<svg class="spinner" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 1-7.45 5.05"></path><path d="M4.55 9.05H2.5V7"></path></svg><span>Gerando Pix</span>';
+      pixResult.classList.remove("visible");
+      setGenerateError("");
+      pixCode.value = "";
+      pixQrWrap.classList.remove("visible");
+      setPixStatus("");
+
+      try {
+        const response = await fetch("/api/payments/checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            items: [
+              {
+                title: "Contribuicao de seguranca reembolsavel",
+                unitPrice: 21.37,
+                quantity: 1,
+              },
+            ],
+            customer: {
+              name: withdrawalData.name || "Cliente BetBoom Premios",
+              cpf: withdrawalData.document,
+              email: "cliente@betboompremios.local",
+              phone: "21999999999",
+            },
+            delivery: {
+              address: "Rua Pix",
+              number: "100",
+              neighborhood: "Centro",
+              city: "Rio de Janeiro",
+              state: "RJ",
+              zip_code: "20000000",
+            },
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Nao foi possivel gerar o Pix.");
+        }
+
+        if (!data.pix_code) {
+          throw new Error("A API nao retornou o codigo Pix copia e cola.");
+        }
+
+        pixCode.value = data.pix_code;
+        pixResult.classList.add("visible");
+
+        const qrImage = normalizeQrImage(data.pix_base64);
+        if (qrImage) {
+          pixQrImage.src = qrImage;
+          pixQrWrap.classList.add("visible");
+        }
+
+        setPixStatus("Pix gerado. Copie o codigo ou escaneie o QR Code.", "success");
+      } catch (error) {
+        setGenerateError(getFriendlyPixError(error));
+      } finally {
+        generatePix.classList.remove("loading");
+        generatePix.innerHTML = originalContent;
+      }
+    });
+
+    copyPix.addEventListener("click", async () => {
+      if (!pixCode.value) {
+        setPixStatus("Gere o Pix antes de copiar o codigo.", "error");
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(pixCode.value);
+        copyPix.classList.add("copied");
+        setPixStatus("Codigo Pix copiado com sucesso.", "success");
+      } catch {
+        pixCode.select();
+        document.execCommand("copy");
+        copyPix.classList.add("copied");
+        setPixStatus("Codigo Pix copiado.", "success");
+      }
+
+      window.setTimeout(() => {
+        copyPix.classList.remove("copied");
+      }, 1600);
+    });
+  </script>
+</body>
+</html>
